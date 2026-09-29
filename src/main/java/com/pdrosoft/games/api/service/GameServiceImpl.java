@@ -1,6 +1,7 @@
 package com.pdrosoft.games.api.service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,12 +13,15 @@ import org.springframework.transaction.annotation.Transactional;
 import com.pdrosoft.games.api.dto.GameDTO;
 import com.pdrosoft.games.api.dto.GameExtendedDTO;
 import com.pdrosoft.games.api.dto.GameInputDTO;
+import com.pdrosoft.games.api.dto.GameTemplateDTO;
 import com.pdrosoft.games.api.dto.PlayerDTO;
 import com.pdrosoft.games.api.exception.MatchmakingValidationException;
 import com.pdrosoft.games.api.exception.NotFoundException;
 import com.pdrosoft.games.api.model.Game;
+import com.pdrosoft.games.api.model.GameTemplate;
 import com.pdrosoft.games.api.model.Player;
 import com.pdrosoft.games.api.repository.GameRepository;
+import com.pdrosoft.games.api.repository.GameTemplateRepository;
 import com.pdrosoft.games.api.stratego.enums.GamePhase;
 
 import lombok.NonNull;
@@ -29,6 +33,8 @@ public class GameServiceImpl implements GameService {
 
 	@NonNull
 	private final GameRepository gameRepository;
+	@NonNull
+	private final GameTemplateRepository gameTemplateRepository;
 
 	private PlayerDTO toPlayerDTO(Player player) {
 		return Optional.ofNullable(player).map(x -> PlayerDTO.builder() //
@@ -37,25 +43,34 @@ public class GameServiceImpl implements GameService {
 				.build()).orElse(null);
 	}
 
+	private GameTemplateDTO toGameTemplateDTO(GameTemplate gameTemplate) {
+		return GameTemplateDTO.builder() //
+				.id(gameTemplate.getId()) //
+				.name(gameTemplate.getName()) //
+				.minPlayers(gameTemplate.getMinPlayers()) //
+				.maxPlayers(gameTemplate.getMaxPlayers()) //
+				.build();
+	}
+
 	private GameDTO toGameDTO(Game game) {
 		return Optional.ofNullable(game).map(x -> GameDTO.builder() //
 				.id(game.getId()) //
-				.creationDate(game.getCreationDate()) //
 				.name(game.getName()) //
-				.host(toPlayerDTO(game.getHost())) //
-				.guest(toPlayerDTO(game.getGuest())) //
+				.creationDate(game.getCreationDate()) //
+				.players(game.getPlayers().stream().map(this::toPlayerDTO).toList()) //
 				.phase(Optional.ofNullable(game.getPhase()).orElse(GamePhase.WAITING_FOR_SETUP_2_PLAYERS)) //
+				.gameTemplate(toGameTemplateDTO(game.getGameTemplate())) //
 				.build()).orElse(null);
 	}
 
 	private GameExtendedDTO toGameExtendedDTO(Game game) {
 		return Optional.ofNullable(game).map(x -> GameExtendedDTO.builder() //
 				.id(game.getId()) //
-				.creationDate(game.getCreationDate()) //
 				.name(game.getName()) //
+				.creationDate(game.getCreationDate()) //
 				.joinCode(game.getJoinCode()) //
-				.host(toPlayerDTO(game.getHost())) //
-				.guest(toPlayerDTO(game.getGuest())) //
+				.gameTemplate(toGameTemplateDTO(game.getGameTemplate())) //
+				.players(game.getPlayers().stream().map(this::toPlayerDTO).toList()) //
 				.phase(Optional.ofNullable(game.getPhase()).orElse(GamePhase.WAITING_FOR_SETUP_2_PLAYERS)) //
 				.build()).orElse(null);
 	}
@@ -78,9 +93,20 @@ public class GameServiceImpl implements GameService {
 		game.setName(Optional.ofNullable(StringUtils.trimToNull(gameInputDto.getName()))
 				.orElse(getDefaultGameDescription(host)));
 		game.setJoinCode(gameInputDto.getJoinCode());
-		game.setHost(host);
 
-		return Optional.of(gameRepository.save(game)).map(this::toGameDTO).orElseThrow();
+		var gameTemplateId = gameInputDto.getGameTemplateId();
+		var gameTemplate = gameTemplateRepository.findById(gameTemplateId) //
+				.orElseThrow(() -> new NotFoundException("game template %d not found".formatted(gameTemplateId)));
+
+		game.setGameTemplate(gameTemplate);
+		game.setPlayers(new ArrayList<Player>());
+		var savedGame = gameRepository.save(game);
+
+		savedGame.getPlayers().add(host);
+
+		gameRepository.save(savedGame);
+
+		return Optional.of(savedGame).map(this::toGameDTO).orElseThrow();
 	}
 
 	private Optional<Game> loadGame(Long gameId) {
@@ -92,11 +118,16 @@ public class GameServiceImpl implements GameService {
 	public GameExtendedDTO joinGame(Player guest, Long gameId) {
 		var game = loadGame(gameId)
 				.orElseThrow(() -> new NotFoundException("Game %d does not exist".formatted(gameId)));
-		if (game.getHost().equals(guest)) {
+
+		if (game.getPlayers().size() >= game.getGameTemplate().getMaxPlayers()) {
+			throw new MatchmakingValidationException("This game already has the maximum number of players");
+		}
+
+		if (game.getPlayers().contains(guest)) {
 			throw new MatchmakingValidationException("In a game, the host and the guest cannot be the same user");
 		}
 
-		game.setGuest(guest);
+		game.getPlayers().add(guest);
 		game.setPhase(GamePhase.WAITING_FOR_SETUP_2_PLAYERS);
 
 		return Optional.ofNullable(gameRepository.save(game)).map(this::toGameExtendedDTO) //
@@ -115,20 +146,10 @@ public class GameServiceImpl implements GameService {
 	public GameDTO leaveGame(Player player, Long gameId) {
 		return loadGame(gameId).map(game -> {
 
-			if (player.equals(game.getHost())) {
-				// gameRepository.delete(game);
-				game.setHost(null);
-				game.setPhase(GamePhase.ABORTED);
+			if (game.getPlayers().contains(player)) {
+				game.getPlayers().remove(player);
 				return Optional.ofNullable(gameRepository.save(game)).map(this::toGameDTO) //
 						.orElseThrow(() -> new MatchmakingValidationException("Error saving game"));
-			}
-
-			if (player.equals(game.getGuest())) {
-				game.setGuest(null);
-				game.setPhase(GamePhase.ABORTED);
-				return Optional.ofNullable(gameRepository.save(game)).map(this::toGameDTO) //
-						.orElseThrow(() -> new MatchmakingValidationException("Error saving game"));
-
 			}
 
 			throw new MatchmakingValidationException(

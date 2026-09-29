@@ -5,12 +5,24 @@ INSERT INTO player(id, username, password) VALUES
 (3, 'testuser3', '$2a$10$Hv0G6KNRtt7EO.pnPNxdr.kpxoaDEH4JJxeeH1P9pSKlylI4HhN1e') -- password3
 ;
 
-INSERT INTO game(id, name, creation_date, join_code, host, guest) VALUES
-(1, 'testuser1s game', '2020-05-01T00:01:00Z', 'code1', 1, NULL),
-(2, 'testuser2s game', '2020-05-01T00:02:00Z', 'code2', 2, NULL),
-(3, 'testuser3s game', '2020-04-29T00:03:00Z', 'code3', 3, NULL),
-(4, 'testuser1s game', '2020-05-01T20:04:00Z', 'code4', 1, 2),
-(5, 'testuser2s game', '2020-05-01T00:05:00Z', 'code5', 2, 3)
+INSERT INTO game_template(id, name, min_players, max_players) VALUES
+(1, 'game', 2, 2)
+;
+
+INSERT INTO game(id, name, game_template, creation_date, join_code) VALUES
+(1, 'testuser1s game', 1, '2020-05-01T00:01:00Z', 'code1'),
+(2, 'testuser2s game', 1, '2020-05-01T00:02:00Z', 'code2'),
+(3, 'testuser3s game', 1, '2020-04-29T00:03:00Z', 'code3'),
+(4, 'testuser1s game', 1, '2020-05-01T20:04:00Z', 'code4'),
+(5, 'testuser2s game', 1, '2020-05-01T00:05:00Z', 'code5')
+;
+
+INSERT INTO game_player(game_id, player_id) VALUES
+(1, 1),
+(2, 2),
+(3, 3),
+(4, 1), (4,2),
+(5, 2), (5,3)
 ;
 
 INSERT INTO favourite_setup(id, owner, description, setup_json) VALUES

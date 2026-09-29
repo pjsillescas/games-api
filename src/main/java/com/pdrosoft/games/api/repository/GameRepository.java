@@ -14,7 +14,7 @@ public interface GameRepository extends JpaRepository<Game, Long>, JpaSpecificat
 	    return findAll((root, query, builder) -> {
 	        query.orderBy(builder.desc(root.get("creationDate")));
 	        return builder.and(
-	                builder.isNull(root.get("guest")),
+	        		// TODO: Add incomplete game predicate
 	                builder.greaterThan(root.get("creationDate"), dateFrom)
 	        );
 	    });

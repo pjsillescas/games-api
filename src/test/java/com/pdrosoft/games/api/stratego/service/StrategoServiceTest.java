@@ -34,6 +34,7 @@ import com.pdrosoft.games.api.chat.dto.NotificationDTO;
 import com.pdrosoft.games.api.chat.service.NotificationService;
 import com.pdrosoft.games.api.exception.MatchmakingValidationException;
 import com.pdrosoft.games.api.model.Game;
+import com.pdrosoft.games.api.model.GameTemplate;
 import com.pdrosoft.games.api.model.Player;
 import com.pdrosoft.games.api.model.StrategoMovement;
 import com.pdrosoft.games.api.model.StrategoStatus;
@@ -125,7 +126,6 @@ public class StrategoServiceTest {
 
 		var board = (List<List<BoardTileDTO>>) Mockito.mock(List.class);
 		var status = Mockito.mock(StrategoStatus.class);
-		Mockito.when(status.getGame()).thenReturn(game);
 		Mockito.when(strategoStatusRepository.findByGameId(GAME_ID)).thenReturn(Optional.of(status));
 		Mockito.when(status.getBoard()).thenReturn(board);
 
@@ -748,13 +748,26 @@ public class StrategoServiceTest {
 				.build();
 	}
 
+	private static GameTemplate getTestGameTemplate() {
+		var gameTemplate = new GameTemplate();
+		gameTemplate.setId(1);
+		gameTemplate.setName("game");
+		gameTemplate.setMinPlayers(2);
+		gameTemplate.setMinPlayers(2);
+		return gameTemplate;
+	}
+
 	private static Game getTestGame(Player host, Player guest) {
 		var game = new Game();
 		game.setId(GAME_ID.intValue());
 		game.setCreationDate(Instant.now());
-		game.setHost(host);
-		game.setGuest(guest);
+		
+		var players = new ArrayList<Player>();
+		players.add(host);
+		players.add(guest);
+		game.setPlayers(players);
 		game.setPhase(GamePhase.PLAYING);
+		game.setGameTemplate(getTestGameTemplate());
 		return game;
 	}
 

@@ -1,7 +1,5 @@
 package com.pdrosoft.games.api.dto;
 
-import java.time.Instant;
-
 import org.jspecify.annotations.NullMarked;
 
 import lombok.AllArgsConstructor;
@@ -11,10 +9,14 @@ import lombok.NoArgsConstructor;
 
 @Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @NullMarked
-public class ErrorResultDTO {
-	private Instant timestamp;
-	private String message;
+public class GameTemplateDTO {
+	private Integer id;
+
+	private String name;
+
+	private Integer minPlayers;
+	private Integer maxPlayers;
 }

@@ -125,7 +125,7 @@ public class StrategoServiceImpl implements StrategoService {
 
 		return strategoStatusRepository.save(status);
 	}
-	
+
 	private void sendNotification(Long gameId, GamePhase gamePhase, String message) {
 		var notification = NotificationDTO.builder() //
 				.gamePhase(gamePhase) //
@@ -137,6 +137,14 @@ public class StrategoServiceImpl implements StrategoService {
 
 	private boolean isPlayerId(Integer playerId, Player player2) {
 		return Optional.ofNullable(player2).map(Player::getId).filter(id -> id == playerId).isPresent();
+	}
+
+	private Optional<Player> getHost(Game game) {
+		return Optional.of(game.getPlayers()).filter(list -> list.size() > 0).map(list -> list.get(0));
+	}
+
+	private Optional<Player> getGuest(Game game) {
+		return Optional.of(game.getPlayers()).filter(list -> list.size() > 1).map(list -> list.get(1));
 	}
 
 	@Override
@@ -157,8 +165,10 @@ public class StrategoServiceImpl implements StrategoService {
 
 		board = status.getBoard();
 
-		var isHost = isPlayerId(player.getId(), game.getHost());
-		var isGuest = isPlayerId(player.getId(), game.getGuest());
+		var hostOpt = getHost(game);
+		var guestOpt = getGuest(game);
+		var isHost = hostOpt.map(host -> isPlayerId(player.getId(), host)).orElse(false);
+		var isGuest = guestOpt.map(guest -> isPlayerId(player.getId(), guest)).orElse(false);
 
 		if (isHost && !status.getIsHostInitialized()) {
 			status.setIsHostInitialized(true);
@@ -181,13 +191,13 @@ public class StrategoServiceImpl implements StrategoService {
 		gameRepository.save(game);
 
 		strategoStatusRepository.save(status);
-		
+
 		sendNotification(gameId, game.getPhase(), "Add setup");
 
 		return GameStateDTO.builder() //
 				.currentPlayer(toPlayerDTO(player)) //
-				.hostPlayerId(Optional.ofNullable(game.getHost()).map(Player::getId).orElse(0)) //
-				.guestPlayerId(Optional.ofNullable(game.getGuest()).map(Player::getId).orElse(0)) //
+				.hostPlayerId(hostOpt.map(Player::getId).orElse(0)) //
+				.guestPlayerId(guestOpt.map(Player::getId).orElse(0)) //
 				.gameId(gameId) //
 				.phase(game.getPhase()) //
 				.movement(null) //
@@ -197,8 +207,10 @@ public class StrategoServiceImpl implements StrategoService {
 	}
 
 	private boolean getIsMyTurn(Integer playerId, Game game, StrategoStatus status) {
-		var isHost = isPlayerId(playerId, game.getHost());
-		var isGuest = isPlayerId(playerId, game.getGuest());
+		var hostOpt = getHost(game);
+		var guestOpt = getGuest(game);
+		var isHost = hostOpt.map(host -> isPlayerId(playerId, host)).orElse(false);
+		var isGuest = guestOpt.map(guest -> isPlayerId(playerId, guest)).orElse(false);
 
 		return isHost && !status.getIsGuestTurn() || isGuest && status.getIsGuestTurn();
 	}
@@ -211,7 +223,8 @@ public class StrategoServiceImpl implements StrategoService {
 			throw new MatchmakingValidationException("Invalid player turn");
 		}
 
-		var isHost = isPlayerId(playerId, game.getHost());
+		var hostOpt = getHost(game);
+		var isHost = hostOpt.map(host -> isPlayerId(playerId, host)).orElse(false);
 		List<List<BoardTileDTO>> board = status.getBoard();
 		var initialTile = board.get(movementDto.getRowInitial()).get(movementDto.getColInitial());
 		if (initialTile == null || initialTile.isHostOwner() != isHost || Rank.DISABLED.equals(initialTile.getRank())) {
@@ -328,11 +341,14 @@ public class StrategoServiceImpl implements StrategoService {
 		strategoMovementRepository.save(move);
 
 		sendNotification(gameId, game.getPhase(), "Add movement");
-		
+
+		var hostOpt = getHost(game);
+		var guestOpt = getGuest(game);
+
 		return GameStateDTO.builder() //
 				.currentPlayer(toPlayerDTO(player)) //
-				.hostPlayerId(Optional.ofNullable(game.getHost()).map(Player::getId).orElse(0)) //
-				.guestPlayerId(Optional.ofNullable(game.getGuest()).map(Player::getId).orElse(0)) //
+				.hostPlayerId(hostOpt.map(Player::getId).orElse(0)) //
+				.guestPlayerId(guestOpt.map(Player::getId).orElse(0)) //
 				.gameId(gameId) //
 				.phase(game.getPhase()) //
 				.movement(addMovementResult(movementDto, movementResult)) //
@@ -386,16 +402,17 @@ public class StrategoServiceImpl implements StrategoService {
 
 		board = status.getBoard();
 
-		// var movement = strategoMovementRepository.findAllByGameId(gameId).getLast();
 		var allMovements = strategoMovementRepository.findAllByGameId(gameId);
 		var movement = Optional
 				.ofNullable((allMovements == null || allMovements.size() == 0) ? null : allMovements.getLast());
 
-		var isHost = player.equals(status.getGame().getHost());
+		var hostOpt = getHost(game);
+		var guestOpt = getGuest(game);
+		var isHost = hostOpt.map(host -> isPlayerId(player.getId(), host)).orElse(false);
 		var statusdto = GameStateDTO.builder() //
 				.currentPlayer(toPlayerDTO(player)) //
-				.hostPlayerId(Optional.ofNullable(game.getHost()).map(Player::getId).orElse(0)) //
-				.guestPlayerId(Optional.ofNullable(game.getGuest()).map(Player::getId).orElse(0)) //
+				.hostPlayerId(hostOpt.map(Player::getId).orElse(0)) //
+				.guestPlayerId(guestOpt.map(Player::getId).orElse(0)) //
 				.gameId(gameId) //
 				.phase(game.getPhase()) //
 				.movement(movement.map(this::toMovementDTO).orElse(null)) //

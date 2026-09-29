@@ -1,6 +1,9 @@
 package com.pdrosoft.games.api.dto;
 
 import java.time.Instant;
+import java.util.List;
+
+import org.jspecify.annotations.NullMarked;
 
 import com.pdrosoft.games.api.stratego.enums.GamePhase;
 
@@ -13,16 +16,18 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@NullMarked
 public class GameExtendedDTO {
 
 	private Integer id;
 
 	private String name;
+	
+	private GameTemplateDTO gameTemplate;
 
 	private Instant creationDate;
 
-	private PlayerDTO host;
-	private PlayerDTO guest;
+	private List<PlayerDTO> players;
 
 	private String joinCode;
 
