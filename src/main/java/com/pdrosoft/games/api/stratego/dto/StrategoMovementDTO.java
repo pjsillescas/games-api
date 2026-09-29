@@ -1,0 +1,43 @@
+package com.pdrosoft.games.api.stratego.dto;
+
+import java.util.List;
+
+import com.pdrosoft.games.api.stratego.enums.Rank;
+
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class StrategoMovementDTO {
+
+	@NotNull
+	private Rank rank;
+
+	@NotNull
+	@Min(0)
+	@Max(9)
+	private int rowInitial;
+	@NotNull
+	@Min(0)
+	@Max(9)
+	private int colInitial;
+
+	@NotNull
+	@Min(0)
+	@Max(9)
+	private int rowFinal;
+	@NotNull
+	@Min(0)
+	@Max(9)
+	private int colFinal;
+
+	private List<StrategoMovementResultDTO> result;
+}

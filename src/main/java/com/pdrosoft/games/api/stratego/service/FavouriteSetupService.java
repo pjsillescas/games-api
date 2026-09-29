@@ -1,0 +1,22 @@
+package com.pdrosoft.games.api.stratego.service;
+
+import java.util.List;
+import java.util.Optional;
+
+import com.pdrosoft.games.api.model.Player;
+import com.pdrosoft.games.api.stratego.dto.FavouriteSetupDTO;
+import com.pdrosoft.games.api.stratego.dto.FavouriteSetupInputDTO;
+
+public interface FavouriteSetupService {
+
+	Optional<FavouriteSetupDTO> addSetup(FavouriteSetupInputDTO favouriteSetupDTO, Player player);
+
+	Optional<FavouriteSetupDTO> updateSetup(Integer setupId, FavouriteSetupInputDTO favouriteSetupDto, Player player);
+
+	Optional<FavouriteSetupDTO> deleteSetup(Integer setupId, Player player);
+
+	List<FavouriteSetupDTO> getSetupList(Player player);
+
+	Optional<FavouriteSetupDTO> getSetup(Integer id, Player player);
+
+}
