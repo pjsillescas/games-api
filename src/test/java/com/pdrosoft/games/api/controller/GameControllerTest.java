@@ -88,14 +88,9 @@ public class GameControllerTest {
 				new TypeReference<List<GameDTO>>() {
 				});
 
-		// TODO: The first 2 games are complete and should not be returned
-		assertThat(gameList).hasSize(4);
-		assertThat(gameList.get(0).getId()).isEqualTo(4);
-		assertThat(gameList.get(1).getId()).isEqualTo(5);
-
-		// assertThat(gameList).hasSize(2);
-		assertThat(gameList.get(2).getId()).isEqualTo(2);
-		assertThat(gameList.get(3).getId()).isEqualTo(1);
+		assertThat(gameList).hasSize(2);
+		assertThat(gameList.get(0).getId()).isEqualTo(2);
+		assertThat(gameList.get(1).getId()).isEqualTo(1);
 	}
 
 	@Test
