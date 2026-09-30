@@ -27,11 +27,13 @@ CREATE TABLE `game`(
 	creation_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	join_code VARCHAR(128) NOT NULL,
 	
-	phase VARCHAR(50),
+	game_template INTEGER NOT NULL,
+	phase VARCHAR(50) NOT NULL,
 	
     CONSTRAINT game_pk PRIMARY KEY(`id`),
 	CONSTRAINT game_host_fk FOREIGN KEY(`host`) REFERENCES `player`(`id`),
-	CONSTRAINT game_guest_fk FOREIGN KEY(`guest`) REFERENCES `player`(`id`)
+	CONSTRAINT game_guest_fk FOREIGN KEY(`guest`) REFERENCES `player`(`id`),
+	CONSTRAINT game_template_fk FOREIGN KEY(`game_template`) REFERENCES `game_template`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `game_player`;

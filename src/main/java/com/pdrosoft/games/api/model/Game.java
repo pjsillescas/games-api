@@ -6,7 +6,7 @@ import java.util.List;
 import org.hibernate.annotations.JdbcType;
 import org.hibernate.type.descriptor.jdbc.TimestampJdbcType;
 
-import com.pdrosoft.games.api.stratego.enums.GamePhase;
+import com.pdrosoft.games.api.enums.GamePhase;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -41,7 +41,7 @@ public class Game {
 	private Instant creationDate;
 
 	@Enumerated(EnumType.STRING)
-	@Column(nullable = true)
+	@Column(nullable = false)
 	private GamePhase phase;
 
 	@ManyToOne(fetch = FetchType.LAZY)

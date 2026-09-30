@@ -27,8 +27,8 @@ import org.springframework.web.socket.WebSocketSession;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pdrosoft.games.api.chat.dto.NotificationDTO;
+import com.pdrosoft.games.api.enums.GamePhase;
 import com.pdrosoft.games.api.exception.NotFoundException;
-import com.pdrosoft.games.api.stratego.enums.GamePhase;
 
 @ExtendWith(MockitoExtension.class)
 class GameNotificationWebSocketHandlerTest {

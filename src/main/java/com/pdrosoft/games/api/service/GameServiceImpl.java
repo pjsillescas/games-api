@@ -15,6 +15,7 @@ import com.pdrosoft.games.api.dto.GameExtendedDTO;
 import com.pdrosoft.games.api.dto.GameInputDTO;
 import com.pdrosoft.games.api.dto.GameTemplateDTO;
 import com.pdrosoft.games.api.dto.PlayerDTO;
+import com.pdrosoft.games.api.enums.GamePhase;
 import com.pdrosoft.games.api.exception.MatchmakingValidationException;
 import com.pdrosoft.games.api.exception.NotFoundException;
 import com.pdrosoft.games.api.model.Game;
@@ -22,7 +23,6 @@ import com.pdrosoft.games.api.model.GameTemplate;
 import com.pdrosoft.games.api.model.Player;
 import com.pdrosoft.games.api.repository.GameRepository;
 import com.pdrosoft.games.api.repository.GameTemplateRepository;
-import com.pdrosoft.games.api.stratego.enums.GamePhase;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -58,7 +58,7 @@ public class GameServiceImpl implements GameService {
 				.name(game.getName()) //
 				.creationDate(game.getCreationDate()) //
 				.players(game.getPlayers().stream().map(this::toPlayerDTO).toList()) //
-				.phase(Optional.ofNullable(game.getPhase()).orElse(GamePhase.WAITING_FOR_SETUP_2_PLAYERS)) //
+				.phase(game.getPhase()) //
 				.gameTemplate(toGameTemplateDTO(game.getGameTemplate())) //
 				.build()).orElse(null);
 	}
@@ -71,14 +71,14 @@ public class GameServiceImpl implements GameService {
 				.joinCode(game.getJoinCode()) //
 				.gameTemplate(toGameTemplateDTO(game.getGameTemplate())) //
 				.players(game.getPlayers().stream().map(this::toPlayerDTO).toList()) //
-				.phase(Optional.ofNullable(game.getPhase()).orElse(GamePhase.WAITING_FOR_SETUP_2_PLAYERS)) //
+				.phase(game.getPhase()) //
 				.build()).orElse(null);
 	}
 
 	@Override
 	@Transactional(readOnly = true)
-	public List<GameDTO> getGameList(Instant dateFrom) {
-		return gameRepository.getGameList(dateFrom).stream().map(this::toGameDTO).toList();
+	public List<GameDTO> getGameList(Optional<Long> gameTemplateId, Instant dateFrom) {
+		return gameRepository.getGameList(gameTemplateId, dateFrom).stream().map(this::toGameDTO).toList();
 	}
 
 	private String getDefaultGameDescription(Player host) {
@@ -100,6 +100,7 @@ public class GameServiceImpl implements GameService {
 
 		game.setGameTemplate(gameTemplate);
 		game.setPlayers(new ArrayList<Player>());
+		game.setPhase(GamePhase.INIT);
 		var savedGame = gameRepository.save(game);
 
 		savedGame.getPlayers().add(host);
@@ -119,7 +120,9 @@ public class GameServiceImpl implements GameService {
 		var game = loadGame(gameId)
 				.orElseThrow(() -> new NotFoundException("Game %d does not exist".formatted(gameId)));
 
-		if (game.getPlayers().size() >= game.getGameTemplate().getMaxPlayers()) {
+		var maxPlayers = game.getGameTemplate().getMaxPlayers();
+
+		if (game.getPlayers().size() >= maxPlayers) {
 			throw new MatchmakingValidationException("This game already has the maximum number of players");
 		}
 
@@ -128,7 +131,35 @@ public class GameServiceImpl implements GameService {
 		}
 
 		game.getPlayers().add(guest);
-		game.setPhase(GamePhase.WAITING_FOR_SETUP_2_PLAYERS);
+
+		if (game.getPlayers().size() >= maxPlayers) {
+			game.setPhase(GamePhase.PLAYING);
+		}
+
+		var savedGame = gameRepository.save(game);
+
+		return Optional.ofNullable(savedGame).map(this::toGameExtendedDTO) //
+				.orElseThrow(() -> new MatchmakingValidationException("Error saving game"));
+	}
+
+	@Override
+	public GameExtendedDTO startGame(Player player, Long gameId) {
+		var game = loadGame(gameId)
+				.orElseThrow(() -> new NotFoundException("Game %d does not exist".formatted(gameId)));
+
+		if (!game.getPlayers().contains(player)) {
+			throw new MatchmakingValidationException("This player does not participate in this game");
+		}
+
+		if (game.getPlayers().size() < game.getGameTemplate().getMinPlayers()) {
+			throw new MatchmakingValidationException("This game does not have the minimum number of players");
+		}
+
+		if (!GamePhase.INIT.equals(game.getPhase())) {
+			throw new MatchmakingValidationException("Game is not in INIT phase");
+		}
+
+		game.setPhase(GamePhase.PLAYING);
 
 		return Optional.ofNullable(gameRepository.save(game)).map(this::toGameExtendedDTO) //
 				.orElseThrow(() -> new MatchmakingValidationException("Error saving game"));

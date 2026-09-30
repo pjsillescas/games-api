@@ -25,11 +25,11 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.pdrosoft.games.api.dto.ErrorResultDTO;
 import com.pdrosoft.games.api.dto.LoginResultDTO;
 import com.pdrosoft.games.api.dto.UserAuthDTO;
+import com.pdrosoft.games.api.enums.GamePhase;
 import com.pdrosoft.games.api.stratego.dto.ArmySetupDTO;
 import com.pdrosoft.games.api.stratego.dto.BoardTileDTO;
 import com.pdrosoft.games.api.stratego.dto.GameStateDTO;
 import com.pdrosoft.games.api.stratego.dto.StrategoMovementDTO;
-import com.pdrosoft.games.api.stratego.enums.GamePhase;
 import com.pdrosoft.games.api.stratego.enums.Rank;
 
 @ActiveProfiles("test")
@@ -122,7 +122,7 @@ public class StrategoApiControllerTest {
 		assertThat(gameState).isNotNull();
 		assertThat(gameState.getGameId()).isEqualTo(GAME_ID);
 		assertThat(gameState.getMovement()).isNull();
-		assertThat(gameState.getPhase()).isEqualTo(GamePhase.WAITING_FOR_SETUP_1_PLAYER);
+		assertThat(gameState.getPhase()).isEqualTo(GamePhase.INIT);
 
 		checkHostBoard(gameState.getBoard(), setupDto);
 

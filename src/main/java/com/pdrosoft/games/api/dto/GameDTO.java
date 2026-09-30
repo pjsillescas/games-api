@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.jspecify.annotations.NullMarked;
 
-import com.pdrosoft.games.api.stratego.enums.GamePhase;
+import com.pdrosoft.games.api.enums.GamePhase;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

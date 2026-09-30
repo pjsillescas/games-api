@@ -32,6 +32,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pdrosoft.games.api.chat.dto.NotificationDTO;
 import com.pdrosoft.games.api.chat.service.NotificationService;
+import com.pdrosoft.games.api.enums.GamePhase;
 import com.pdrosoft.games.api.exception.MatchmakingValidationException;
 import com.pdrosoft.games.api.model.Game;
 import com.pdrosoft.games.api.model.GameTemplate;
@@ -46,7 +47,6 @@ import com.pdrosoft.games.api.stratego.dto.ArmySetupDTO;
 import com.pdrosoft.games.api.stratego.dto.BoardTileDTO;
 import com.pdrosoft.games.api.stratego.dto.StrategoMovementDTO;
 import com.pdrosoft.games.api.stratego.dto.StrategoMovementResultDTO;
-import com.pdrosoft.games.api.stratego.enums.GamePhase;
 import com.pdrosoft.games.api.stratego.enums.Rank;
 
 @ExtendWith(MockitoExtension.class)
@@ -179,8 +179,7 @@ public class StrategoServiceTest {
 	}
 
 	@ParameterizedTest
-	@EnumSource(value = GamePhase.class, names = { "WAITING_FOR_SETUP_2_PLAYERS", "WAITING_FOR_SETUP_1_PLAYER",
-			"FINISHED" })
+	@EnumSource(value = GamePhase.class, names = { "INIT", "FINISHED" })
 	void testAddMovementWrongPlayerTurn(GamePhase wrongPhase) {
 		var player = getTestPlayer();
 		var game = getTestGame(player, player);
@@ -476,7 +475,7 @@ public class StrategoServiceTest {
 
 		var game = getTestGame(host, guest);
 		var setup = getValidSetup();
-		game.setPhase(GamePhase.WAITING_FOR_SETUP_1_PLAYER);
+		game.setPhase(GamePhase.INIT);
 
 		var statusMock = Mockito.mock(StrategoStatus.class);
 		if (isHostInitialized) {
@@ -554,7 +553,7 @@ public class StrategoServiceTest {
 
 		var game = getTestGame(host, guest);
 		var setup = getValidSetup();
-		game.setPhase(GamePhase.WAITING_FOR_SETUP_1_PLAYER);
+		game.setPhase(GamePhase.INIT);
 
 		StrategoStatus status = null;
 		if (useExistingStatus) {
@@ -588,7 +587,8 @@ public class StrategoServiceTest {
 		var notificationCaptor = ArgumentCaptor.forClass(NotificationDTO.class);
 		Mockito.verify(notificationService).sendNotification(Mockito.eq(GAME_ID.toString()),
 				notificationCaptor.capture());
-		assertThat(notificationCaptor.getValue().getGamePhase()).isEqualTo(GamePhase.PLAYING);
+		assertThat(notificationCaptor.getValue().getGamePhase())
+				.isEqualTo(useExistingStatus ? GamePhase.PLAYING : GamePhase.INIT);
 		assertThat(notificationCaptor.getValue().getMessage()).isEqualTo("Add setup");
 
 		Mockito.verifyNoMoreInteractions(notificationService);
@@ -603,7 +603,7 @@ public class StrategoServiceTest {
 
 		var game = getTestGame(host, guest);
 		var setup = getValidSetup();
-		game.setPhase(GamePhase.WAITING_FOR_SETUP_1_PLAYER);
+		game.setPhase(GamePhase.INIT);
 
 		StrategoStatus status = null;
 		if (useExistingStatus) {
@@ -637,18 +637,16 @@ public class StrategoServiceTest {
 		var notificationCaptor = ArgumentCaptor.forClass(NotificationDTO.class);
 		Mockito.verify(notificationService).sendNotification(Mockito.eq(GAME_ID.toString()),
 				notificationCaptor.capture());
-		assertThat(notificationCaptor.getValue().getGamePhase()).isEqualTo(GamePhase.PLAYING);
+		assertThat(notificationCaptor.getValue().getGamePhase())
+				.isEqualTo(useExistingStatus ? GamePhase.PLAYING : GamePhase.INIT);
 		assertThat(notificationCaptor.getValue().getMessage()).isEqualTo("Add setup");
 
 		Mockito.verifyNoMoreInteractions(notificationService);
 	}
 
-	@ParameterizedTest
-	@EnumSource(value = GamePhase.class, names = { //
-			"WAITING_FOR_SETUP_2_PLAYERS", //
-			"WAITING_FOR_SETUP_1_PLAYER", //
-	})
-	void testAddSetupState(GamePhase gamePhase) {
+	@Test
+	void testAddSetupBeginGame() {
+		GamePhase gamePhase = GamePhase.INIT;
 		var host = getTestPlayer(HOST_ID);
 		var guest = getTestPlayer(GUEST_ID);
 		var player = guest;
@@ -671,9 +669,7 @@ public class StrategoServiceTest {
 
 		var gameStateDto = strategoService.addSetup(GAME_ID, player, setup);
 
-		var nextPhase = GamePhase.WAITING_FOR_SETUP_1_PLAYER.equals(gamePhase) //
-				? GamePhase.PLAYING //
-				: GamePhase.WAITING_FOR_SETUP_1_PLAYER;
+		var nextPhase = GamePhase.PLAYING;
 
 		var gameCaptor = ArgumentCaptor.forClass(Game.class);
 		Mockito.verify(gameRepository).save(gameCaptor.capture());
@@ -761,7 +757,7 @@ public class StrategoServiceTest {
 		var game = new Game();
 		game.setId(GAME_ID.intValue());
 		game.setCreationDate(Instant.now());
-		
+
 		var players = new ArrayList<Player>();
 		players.add(host);
 		players.add(guest);

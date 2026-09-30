@@ -36,6 +36,7 @@ import com.pdrosoft.games.api.dto.GameInputDTO;
 import com.pdrosoft.games.api.dto.LoginResultDTO;
 import com.pdrosoft.games.api.dto.PlayerDTO;
 import com.pdrosoft.games.api.dto.UserAuthDTO;
+import com.pdrosoft.games.api.enums.GamePhase;
 
 @ActiveProfiles("test")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -78,9 +79,28 @@ public class GameControllerTest {
 	}
 
 	@Test
-	void testGameListSuccess() throws Exception {
+	void testGameListSuccessAllTemplates() throws Exception {
 		var token = getToken("testuser1", "password1");
 		var result = mockMvc.perform(get("/api/game").param("date_from", "2020-05-01T00:00:00Z") //
+				.header("Authorization", "Bearer %s".formatted(token)))//
+				.andExpect(status().isOk()).andReturn();
+
+		List<GameDTO> gameList = getObjectMapper().readValue(result.getResponse().getContentAsString(),
+				new TypeReference<List<GameDTO>>() {
+				});
+
+		assertThat(gameList).hasSize(3);
+		assertThat(gameList.get(0).getId()).isEqualTo(6);
+		assertThat(gameList.get(1).getId()).isEqualTo(2);
+		assertThat(gameList.get(2).getId()).isEqualTo(1);
+	}
+
+	@Test
+	void testGameListSuccessOneTemplate() throws Exception {
+		var token = getToken("testuser1", "password1");
+		var result = mockMvc.perform(get("/api/game") //
+				.param("date_from", "2020-05-01T00:00:00Z") //
+				.param("game_template_id", "1") //
 				.header("Authorization", "Bearer %s".formatted(token)))//
 				.andExpect(status().isOk()).andReturn();
 
@@ -255,6 +275,67 @@ public class GameControllerTest {
 		var resultDto = getObjectMapper().readValue(resultJoin2.getResponse().getContentAsString(),
 				ErrorResultDTO.class);
 		assertThat(resultDto.getMessage()).isEqualTo("This game already has the maximum number of players");
+	}
+
+	@Test
+	void testCreateAndStartFail() throws Exception {
+		var tokenHost = getToken("testuser1", "password1");
+
+		var gameInputDto = GameInputDTO.builder().joinCode("test-code").gameTemplateId(GAME_TEMPLATE_ID).build();
+		var json = getObjectMapper().writeValueAsString(gameInputDto);
+		var result = mockMvc.perform(put("/api/game") //
+				.header("Authorization", "Bearer %s".formatted(tokenHost)) //
+				.contentType(MediaType.APPLICATION_JSON)//
+				.content(json))//
+				.andExpect(status().isOk()).andReturn();
+
+		var game = getObjectMapper().readValue(result.getResponse().getContentAsString(), GameDTO.class);
+		var newGameId = game.getId();
+		assertThat(game.getCreationDate()).isBetween(Instant.now().minus(Duration.ofSeconds(2)),
+				Instant.now().plus(Duration.ofSeconds(2)));
+		assertThat(game.getName()).isEqualTo("testuser1's game");
+		assertThat(game.getPlayers()).hasSize(1).allSatisfy(user -> {
+			assertThat(user.getUsername()).isEqualTo("testuser1");
+		});
+
+		var resultStart = mockMvc.perform(put("/api/game/{gameId}/start", Integer.toString(newGameId)) //
+				.header("Authorization", "Bearer %s".formatted(tokenHost)))//
+				.andExpect(status().isBadRequest()).andReturn();
+
+		var error = getObjectMapper().readValue(resultStart.getResponse().getContentAsString(), ErrorResultDTO.class);
+		assertThat(error.getMessage()).isEqualTo("This game does not have the minimum number of players");
+	}
+
+	@Test
+	void testCreateAndStartSuccess() throws Exception {
+		var tokenHost = getToken("testuser1", "password1");
+
+		var gameInputDto = GameInputDTO.builder().joinCode("test-code").gameTemplateId(2L).build();
+		var json = getObjectMapper().writeValueAsString(gameInputDto);
+		var result = mockMvc.perform(put("/api/game") //
+				.header("Authorization", "Bearer %s".formatted(tokenHost)) //
+				.contentType(MediaType.APPLICATION_JSON)//
+				.content(json))//
+				.andExpect(status().isOk()).andReturn();
+
+		var game = getObjectMapper().readValue(result.getResponse().getContentAsString(), GameDTO.class);
+		var newGameId = game.getId();
+		assertThat(game.getCreationDate()).isBetween(Instant.now().minus(Duration.ofSeconds(2)),
+				Instant.now().plus(Duration.ofSeconds(2)));
+		assertThat(game.getName()).isEqualTo("testuser1's game");
+		assertThat(game.getGameTemplate().getId()).isEqualTo(2);
+		assertThat(game.getGameTemplate().getMinPlayers()).isEqualTo(1);
+		assertThat(game.getPlayers()).hasSize(1).allSatisfy(user -> {
+			assertThat(user.getUsername()).isEqualTo("testuser1");
+		});
+
+		var resultStart = mockMvc.perform(put("/api/game/{gameId}/start", Integer.toString(newGameId)) //
+				.header("Authorization", "Bearer %s".formatted(tokenHost)))//
+				.andExpect(status().isOk()).andReturn();
+
+		var gameDto = getObjectMapper().readValue(resultStart.getResponse().getContentAsString(),
+				GameExtendedDTO.class);
+		assertThat(gameDto.getPhase()).isEqualTo(GamePhase.PLAYING);
 	}
 
 	@Test

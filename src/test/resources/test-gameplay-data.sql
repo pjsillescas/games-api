@@ -9,7 +9,7 @@ INSERT INTO game_template(id, name, min_players, max_players) VALUES
 ;
 
 INSERT INTO game(id, name, game_template, creation_date, join_code, phase) VALUES
-(5, 'testuser1s game', 1, '2020-05-01T20:04:00Z', 'code4', 'WAITING_FOR_SETUP_2_PLAYERS')
+(5, 'testuser1s game', 1, '2020-05-01T20:04:00Z', 'code4', 'INIT')
 ;
 
 INSERT INTO game_player(game_id, player_id) VALUES

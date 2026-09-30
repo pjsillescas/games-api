@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.util.List;
 
 import com.pdrosoft.games.api.dto.PlayerDTO;
-import com.pdrosoft.games.api.stratego.enums.GamePhase;
+import com.pdrosoft.games.api.enums.GamePhase;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,6 +28,6 @@ public class GameStateDTO implements Serializable {
 	private GamePhase phase;
 
 	private List<List<BoardTileDTO>> board;
-	
+
 	private boolean isMyTurn;
 }

@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pdrosoft.games.api.chat.dto.NotificationDTO;
 import com.pdrosoft.games.api.chat.service.NotificationService;
 import com.pdrosoft.games.api.dto.PlayerDTO;
+import com.pdrosoft.games.api.enums.GamePhase;
 import com.pdrosoft.games.api.exception.MatchmakingValidationException;
 import com.pdrosoft.games.api.model.Game;
 import com.pdrosoft.games.api.model.Player;
@@ -29,7 +30,6 @@ import com.pdrosoft.games.api.stratego.dto.BoardTileDTO;
 import com.pdrosoft.games.api.stratego.dto.GameStateDTO;
 import com.pdrosoft.games.api.stratego.dto.StrategoMovementDTO;
 import com.pdrosoft.games.api.stratego.dto.StrategoMovementResultDTO;
-import com.pdrosoft.games.api.stratego.enums.GamePhase;
 import com.pdrosoft.games.api.stratego.enums.Rank;
 
 import jakarta.validation.Valid;
@@ -154,7 +154,7 @@ public class StrategoServiceImpl implements StrategoService {
 		var game = gameRepository.findById(gameId)
 				.orElseThrow(() -> new MatchmakingValidationException("Game does not exist"));
 
-		var setupPhases = List.of(GamePhase.WAITING_FOR_SETUP_1_PLAYER, GamePhase.WAITING_FOR_SETUP_2_PLAYERS);
+		var setupPhases = List.of(GamePhase.INIT);
 
 		if (game.getPhase() != null && !setupPhases.contains(game.getPhase())) {
 			throw new MatchmakingValidationException("Game not in setup state");
@@ -182,10 +182,8 @@ public class StrategoServiceImpl implements StrategoService {
 
 		status.setBoard(board);
 
-		if (GamePhase.WAITING_FOR_SETUP_1_PLAYER.equals(game.getPhase())) {
+		if (status.getIsHostInitialized() && status.getIsGuestInitialized()) {
 			game.setPhase(GamePhase.PLAYING);
-		} else { // if (GamePhase.WAITING_FOR_SETUP_2_PLAYERS.equals(game.getPhase())) {
-			game.setPhase(GamePhase.WAITING_FOR_SETUP_1_PLAYER);
 		}
 
 		gameRepository.save(game);

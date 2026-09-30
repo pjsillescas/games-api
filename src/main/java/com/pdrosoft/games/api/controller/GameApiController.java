@@ -19,7 +19,7 @@ import com.pdrosoft.games.api.dto.GameDTO;
 import com.pdrosoft.games.api.dto.GameExtendedDTO;
 import com.pdrosoft.games.api.dto.GameInputDTO;
 import com.pdrosoft.games.api.security.payload.MatchmakingUserDetails;
-import com.pdrosoft.games.api.service.MatchmakingService;
+import com.pdrosoft.games.api.service.GameService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
@@ -31,19 +31,17 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.NonNull;
+import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/game")
 @Tag(name = "Game management", description = "Game management endpoints")
+@RequiredArgsConstructor(onConstructor_ = { @Autowired })
 @SecurityRequirement(name = "Bearer Authentication")
 public class GameApiController {
 
 	@NonNull
-	private final MatchmakingService matchmakingService;
-
-	public GameApiController(@Autowired MatchmakingService matchmakingService) {
-		this.matchmakingService = matchmakingService;
-	}
+	private final GameService gameService;
 
 	@Operation(summary = "Get game list", description = "Get game list")
 	@ApiResponses(value = {
@@ -51,11 +49,12 @@ public class GameApiController {
 			@ApiResponse(responseCode = "400", description = "Invalid request data", content = @Content(schema = @Schema())), //
 			@ApiResponse(responseCode = "404", description = "invalid credentials", content = @Content(schema = @Schema())) //
 	})
-	@GetMapping(path = "/game", produces = { "application/json" })
-	public List<GameDTO> getGames(@RequestParam(name = "date_from", required = false) String dateFromStr) {
+	@GetMapping(path = "", produces = { "application/json" })
+	public List<GameDTO> getGames(@RequestParam(name = "date_from", required = false) String dateFromStr, //
+			@RequestParam(name = "game_template_id", required = false) Long gameTemplateId) {
 		var dateFrom = Optional.ofNullable(dateFromStr).map(Instant::parse) //
 				.orElse(Instant.now().minus(Duration.ofMinutes(10)));
-		return matchmakingService.getGameList(dateFrom);
+		return gameService.getGameList(Optional.ofNullable(gameTemplateId), dateFrom);
 	}
 
 	@Operation(summary = "Create game", description = "Create game")
@@ -64,10 +63,10 @@ public class GameApiController {
 			@ApiResponse(responseCode = "400", description = "Invalid request data", content = @Content(schema = @Schema())), //
 			@ApiResponse(responseCode = "404", description = "invalid credentials", content = @Content(schema = @Schema())) //
 	})
-	@PutMapping(path = "/game", produces = { "application/json" })
+	@PutMapping(path = "", produces = { "application/json" })
 	public GameDTO addGame(@AuthenticationPrincipal MatchmakingUserDetails userDetails,
 			@Valid @RequestBody GameInputDTO gameInputDto) {
-		return matchmakingService.addGame(userDetails.getPlayer(), gameInputDto);
+		return gameService.addGame(userDetails.getPlayer(), gameInputDto);
 	}
 
 	@Operation(summary = "Get game by id", description = "Get game by id")
@@ -76,10 +75,10 @@ public class GameApiController {
 			@ApiResponse(responseCode = "400", description = "Invalid request data", content = @Content(schema = @Schema())), //
 			@ApiResponse(responseCode = "404", description = "invalid credentials", content = @Content(schema = @Schema())) //
 	})
-	@GetMapping(path = "/game/{gameId:[0-9]+}", produces = { "application/json" })
+	@GetMapping(path = "/{gameId:[0-9]+}", produces = { "application/json" })
 	public GameExtendedDTO getGame(@AuthenticationPrincipal MatchmakingUserDetails userDetails,
 			@PathVariable("gameId") Long gameId) {
-		return matchmakingService.getGame(userDetails.getPlayer(), gameId);
+		return gameService.getGame(userDetails.getPlayer(), gameId);
 	}
 
 	@Operation(summary = "Join game", description = "Join game")
@@ -88,12 +87,26 @@ public class GameApiController {
 			@ApiResponse(responseCode = "400", description = "Invalid request data", content = @Content(schema = @Schema())), //
 			@ApiResponse(responseCode = "404", description = "invalid credentials", content = @Content(schema = @Schema())) //
 	})
-	@PutMapping(path = "/game/{gameId:[0-9]+}/join", produces = { "application/json" })
+	@PutMapping(path = "/{gameId:[0-9]+}/join", produces = { "application/json" })
 	// @PostMapping(path = "/game/{gameId:[0-9]+}/join", produces = {
 	// "application/json" })
 	public GameExtendedDTO joinGame(@AuthenticationPrincipal MatchmakingUserDetails userDetails,
 			@PathVariable("gameId") Long gameId) {
-		return matchmakingService.joinGame(userDetails.getPlayer(), gameId);
+		return gameService.joinGame(userDetails.getPlayer(), gameId);
+	}
+
+	@Operation(summary = "Join game", description = "Join game")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Game joined successfully", content = @Content(schema = @Schema(implementation = GameExtendedDTO.class))), //
+			@ApiResponse(responseCode = "400", description = "Invalid request data", content = @Content(schema = @Schema())), //
+			@ApiResponse(responseCode = "404", description = "invalid credentials", content = @Content(schema = @Schema())) //
+	})
+	@PutMapping(path = "/{gameId:[0-9]+}/start", produces = { "application/json" })
+	// @PostMapping(path = "/game/{gameId:[0-9]+}/join", produces = {
+	// "application/json" })
+	public GameExtendedDTO startGame(@AuthenticationPrincipal MatchmakingUserDetails userDetails,
+			@PathVariable("gameId") Long gameId) {
+		return gameService.startGame(userDetails.getPlayer(), gameId);
 	}
 
 	@Operation(summary = "Leave game", description = "Leave game")
@@ -102,11 +115,11 @@ public class GameApiController {
 			@ApiResponse(responseCode = "400", description = "Invalid request data", content = @Content(schema = @Schema())), //
 			@ApiResponse(responseCode = "404", description = "invalid credentials", content = @Content(schema = @Schema())) //
 	})
-	@PutMapping(path = "/game/{gameId:[0-9]+}/leave", produces = { "application/json" })
-	// @PostMapping(path = "/game/{gameId:[0-9]+}/leave", produces = {
+	@PutMapping(path = "/{gameId:[0-9]+}/leave", produces = { "application/json" })
+	// @PostMapping(path = "/{gameId:[0-9]+}/leave", produces = {
 	// "application/json" })
 	public GameDTO leaveGame(@AuthenticationPrincipal MatchmakingUserDetails userDetails,
 			@PathVariable("gameId") Long gameId) {
-		return matchmakingService.leaveGame(userDetails.getPlayer(), gameId);
+		return gameService.leaveGame(userDetails.getPlayer(), gameId);
 	}
 }

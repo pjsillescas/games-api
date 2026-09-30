@@ -1,6 +1,6 @@
 package com.pdrosoft.games.api.chat.dto;
 
-import com.pdrosoft.games.api.stratego.enums.GamePhase;
+import com.pdrosoft.games.api.enums.GamePhase;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
