@@ -289,18 +289,6 @@ class GameServiceImplTest {
 	}
 
 	@Test
-	void testJoinGame_BecomesPlayingWhenFull() {
-		gameTemplate.setMaxPlayers(2);
-		Mockito.when(gameRepository.findById(GAME_ID)).thenReturn(Optional.of(game));
-		Mockito.when(gameRepository.save(Mockito.any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-		GameExtendedDTO result = gameService.joinGame(guest, GAME_ID);
-
-		assertThat(result.getPhase()).isEqualTo(GamePhase.PLAYING);
-		Mockito.verify(gameRepository).save(game);
-	}
-
-	@Test
 	void testStartGame_Success() {
 		game.getPlayers().clear();
 		game.getPlayers().add(host);

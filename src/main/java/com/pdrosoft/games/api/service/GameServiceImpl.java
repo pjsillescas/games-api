@@ -132,10 +132,6 @@ public class GameServiceImpl implements GameService {
 
 		game.getPlayers().add(guest);
 
-		if (game.getPlayers().size() >= maxPlayers) {
-			game.setPhase(GamePhase.PLAYING);
-		}
-
 		var savedGame = gameRepository.save(game);
 
 		return Optional.ofNullable(savedGame).map(this::toGameExtendedDTO) //
