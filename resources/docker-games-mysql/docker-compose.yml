@@ -2,12 +2,12 @@ version: '3.8'
 services:
   mysql:
     image: mysql:8.0
-    container_name: stratego-db
+    container_name: games-db
     environment:
       MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: stratego-db
-      MYSQL_USER: stratego
-      MYSQL_PASSWORD: stratego
+      MYSQL_DATABASE: games-db
+      MYSQL_USER: games
+      MYSQL_PASSWORD: games
     volumes:
       - mysql-data:/var/lib/mysql
     ports:

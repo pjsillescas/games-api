@@ -31,8 +31,6 @@ CREATE TABLE `game`(
 	phase VARCHAR(50) NOT NULL,
 	
     CONSTRAINT game_pk PRIMARY KEY(`id`),
-	CONSTRAINT game_host_fk FOREIGN KEY(`host`) REFERENCES `player`(`id`),
-	CONSTRAINT game_guest_fk FOREIGN KEY(`guest`) REFERENCES `player`(`id`),
 	CONSTRAINT game_template_fk FOREIGN KEY(`game_template`) REFERENCES `game_template`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -41,8 +39,8 @@ CREATE TABLE `game_player`(
 	game_id INTEGER NOT NULL,
 	player_id INTEGER NOT NULL,
 
-	CONSTRAINT game_player_fk FOREIGN KEY(`game_id`) REFERENCES `game`(`id`),
-	CONSTRAINT game_player_fk FOREIGN KEY(`player_id`) REFERENCES `player`(`id`)
+	CONSTRAINT game_player_game_fk FOREIGN KEY(`game_id`) REFERENCES `game`(`id`),
+	CONSTRAINT game_player_player_fk FOREIGN KEY(`player_id`) REFERENCES `player`(`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 DROP TABLE IF EXISTS `stratego_status`;
@@ -96,6 +94,9 @@ CREATE TABLE `favourite_setup`(
 
 SET FOREIGN_KEY_CHECKS = 1;
 
+INSERT INTO game_template(id, name, min_players, max_players) VALUES
+(1, 'Stratego', 2, 2)
+;
 
 INSERT INTO player(id, username, password) VALUES
 (1, 'user1', 'password1'),
