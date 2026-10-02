@@ -11,6 +11,8 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -361,6 +363,124 @@ class GameServiceImplTest {
 		Mockito.when(gameRepository.findById(999L)).thenReturn(Optional.empty());
 
 		assertThatThrownBy(() -> gameService.startGame(host, 999L)).isInstanceOf(NotFoundException.class)
+				.hasMessage("Game 999 does not exist");
+
+		Mockito.verify(gameRepository).findById(999L);
+		Mockito.verifyNoMoreInteractions(gameRepository);
+	}
+
+	// --------------------------------------
+
+	@Test
+	void testFinishGame_Success() {
+		game.getPlayers().clear();
+		game.getPlayers().add(host);
+		game.getPlayers().add(guest);
+		game.getPlayers().add(getTestPlayer(PLAYER_ID + 1, "other"));
+		game.setPhase(GamePhase.PLAYING);
+		gameTemplate.setMinPlayers(2);
+
+		Mockito.when(gameRepository.findById(GAME_ID)).thenReturn(Optional.of(game));
+		Mockito.when(gameRepository.save(Mockito.any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		GameExtendedDTO result = gameService.finishGame(host, GAME_ID);
+
+		assertThat(result.getPhase()).isEqualTo(GamePhase.FINISHED);
+		assertThat(result.getPlayers()).hasSize(3);
+
+		Mockito.verify(gameRepository).findById(GAME_ID);
+		Mockito.verify(gameRepository).save(game);
+		Mockito.verifyNoMoreInteractions(gameRepository);
+	}
+
+	@Test
+	void testFinishGame_NotInGame() {
+		game.getPlayers().clear();
+		game.getPlayers().add(guest);
+
+		Mockito.when(gameRepository.findById(GAME_ID)).thenReturn(Optional.of(game));
+
+		assertThatThrownBy(() -> gameService.finishGame(host, GAME_ID))
+				.isInstanceOf(MatchmakingValidationException.class)
+				.hasMessage("This player does not participate in this game");
+
+		Mockito.verify(gameRepository).findById(GAME_ID);
+		Mockito.verifyNoMoreInteractions(gameRepository);
+	}
+
+	@Test
+	void testFinishGame_WrongPhase() {
+		game.getPlayers().clear();
+		game.getPlayers().add(host);
+		game.getPlayers().add(guest);
+		game.getPlayers().add(getTestPlayer(PLAYER_ID + 1, "other"));
+		game.setPhase(GamePhase.INIT);
+
+		Mockito.when(gameRepository.findById(GAME_ID)).thenReturn(Optional.of(game));
+
+		assertThatThrownBy(() -> gameService.finishGame(host, GAME_ID))
+				.isInstanceOf(MatchmakingValidationException.class).hasMessage("Game is not in PLAYING phase");
+
+		Mockito.verify(gameRepository).findById(GAME_ID);
+		Mockito.verifyNoMoreInteractions(gameRepository);
+	}
+
+	@Test
+	void testFinishGame_NotFound() {
+		Mockito.when(gameRepository.findById(999L)).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> gameService.finishGame(host, 999L)).isInstanceOf(NotFoundException.class)
+				.hasMessage("Game 999 does not exist");
+
+		Mockito.verify(gameRepository).findById(999L);
+		Mockito.verifyNoMoreInteractions(gameRepository);
+	}
+
+	// ................................
+
+	@ParameterizedTest
+	@EnumSource(value = GamePhase.class)
+	void testAbortGame_Success(GamePhase phase) {
+		game.getPlayers().clear();
+		game.getPlayers().add(host);
+		game.getPlayers().add(guest);
+		game.getPlayers().add(getTestPlayer(PLAYER_ID + 1, "other"));
+		game.setPhase(phase);
+		gameTemplate.setMinPlayers(2);
+
+		Mockito.when(gameRepository.findById(GAME_ID)).thenReturn(Optional.of(game));
+		Mockito.when(gameRepository.save(Mockito.any(Game.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+		GameExtendedDTO result = gameService.abortGame(host, GAME_ID);
+
+		assertThat(result.getPhase()).isEqualTo(GamePhase.ABORTED);
+		assertThat(result.getPlayers()).hasSize(3);
+
+		Mockito.verify(gameRepository).findById(GAME_ID);
+		Mockito.verify(gameRepository).save(game);
+		Mockito.verifyNoMoreInteractions(gameRepository);
+	}
+
+	@Test
+	void testAbortGame_NotInGame() {
+		game.getPlayers().clear();
+		game.getPlayers().add(guest);
+
+		Mockito.when(gameRepository.findById(GAME_ID)).thenReturn(Optional.of(game));
+
+		assertThatThrownBy(() -> gameService.abortGame(host, GAME_ID))
+				.isInstanceOf(MatchmakingValidationException.class)
+				.hasMessage("This player does not participate in this game");
+
+		Mockito.verify(gameRepository).findById(GAME_ID);
+		Mockito.verifyNoMoreInteractions(gameRepository);
+	}
+
+	@Test
+	void testAbortGame_NotFound() {
+		Mockito.when(gameRepository.findById(999L)).thenReturn(Optional.empty());
+
+		assertThatThrownBy(() -> gameService.abortGame(host, 999L)).isInstanceOf(NotFoundException.class)
 				.hasMessage("Game 999 does not exist");
 
 		Mockito.verify(gameRepository).findById(999L);

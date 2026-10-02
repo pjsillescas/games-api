@@ -138,14 +138,20 @@ public class GameServiceImpl implements GameService {
 				.orElseThrow(() -> new MatchmakingValidationException("Error saving game"));
 	}
 
-	@Override
-	public GameExtendedDTO startGame(Player player, Long gameId) {
+	private Game loadParticipatingGame(Player player, Long gameId) {
 		var game = loadGame(gameId)
 				.orElseThrow(() -> new NotFoundException("Game %d does not exist".formatted(gameId)));
 
 		if (!game.getPlayers().contains(player)) {
 			throw new MatchmakingValidationException("This player does not participate in this game");
 		}
+
+		return game;
+	}
+
+	@Override
+	public GameExtendedDTO startGame(Player player, Long gameId) {
+		var game = loadParticipatingGame(player, gameId);
 
 		if (game.getPlayers().size() < game.getGameTemplate().getMinPlayers()) {
 			throw new MatchmakingValidationException("This game does not have the minimum number of players");
@@ -156,6 +162,30 @@ public class GameServiceImpl implements GameService {
 		}
 
 		game.setPhase(GamePhase.PLAYING);
+
+		return Optional.ofNullable(gameRepository.save(game)).map(this::toGameExtendedDTO) //
+				.orElseThrow(() -> new MatchmakingValidationException("Error saving game"));
+	}
+
+	@Override
+	public GameExtendedDTO finishGame(Player player, Long gameId) {
+		var game = loadParticipatingGame(player, gameId);
+
+		if (!GamePhase.PLAYING.equals(game.getPhase())) {
+			throw new MatchmakingValidationException("Game is not in PLAYING phase");
+		}
+
+		game.setPhase(GamePhase.FINISHED);
+
+		return Optional.ofNullable(gameRepository.save(game)).map(this::toGameExtendedDTO) //
+				.orElseThrow(() -> new MatchmakingValidationException("Error saving game"));
+	}
+
+	@Override
+	public GameExtendedDTO abortGame(Player player, Long gameId) {
+		var game = loadParticipatingGame(player, gameId);
+
+		game.setPhase(GamePhase.ABORTED);
 
 		return Optional.ofNullable(gameRepository.save(game)).map(this::toGameExtendedDTO) //
 				.orElseThrow(() -> new MatchmakingValidationException("Error saving game"));

@@ -95,9 +95,9 @@ public class GameApiController {
 		return gameService.joinGame(userDetails.getPlayer(), gameId);
 	}
 
-	@Operation(summary = "Join game", description = "Join game")
+	@Operation(summary = "Start game", description = "Start game")
 	@ApiResponses(value = {
-			@ApiResponse(responseCode = "200", description = "Game joined successfully", content = @Content(schema = @Schema(implementation = GameExtendedDTO.class))), //
+			@ApiResponse(responseCode = "200", description = "Game status successfully changed to PLAYING", content = @Content(schema = @Schema(implementation = GameExtendedDTO.class))), //
 			@ApiResponse(responseCode = "400", description = "Invalid request data", content = @Content(schema = @Schema())), //
 			@ApiResponse(responseCode = "404", description = "invalid credentials", content = @Content(schema = @Schema())) //
 	})
@@ -107,6 +107,30 @@ public class GameApiController {
 	public GameExtendedDTO startGame(@AuthenticationPrincipal MatchmakingUserDetails userDetails,
 			@PathVariable("gameId") Long gameId) {
 		return gameService.startGame(userDetails.getPlayer(), gameId);
+	}
+
+	@Operation(summary = "Finish game", description = "Finish game")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Game status successfully changed to FINISHED", content = @Content(schema = @Schema(implementation = GameExtendedDTO.class))), //
+			@ApiResponse(responseCode = "400", description = "Invalid request data", content = @Content(schema = @Schema())), //
+			@ApiResponse(responseCode = "404", description = "invalid credentials", content = @Content(schema = @Schema())) //
+	})
+	@PutMapping(path = "/{gameId:[0-9]+}/finish", produces = { "application/json" })
+	public GameExtendedDTO finishGame(@AuthenticationPrincipal MatchmakingUserDetails userDetails,
+			@PathVariable("gameId") Long gameId) {
+		return gameService.finishGame(userDetails.getPlayer(), gameId);
+	}
+
+	@Operation(summary = "Abort game", description = "Abort game")
+	@ApiResponses(value = {
+			@ApiResponse(responseCode = "200", description = "Game status successfully changed to ABORTED", content = @Content(schema = @Schema(implementation = GameExtendedDTO.class))), //
+			@ApiResponse(responseCode = "400", description = "Invalid request data", content = @Content(schema = @Schema())), //
+			@ApiResponse(responseCode = "404", description = "invalid credentials", content = @Content(schema = @Schema())) //
+	})
+	@PutMapping(path = "/{gameId:[0-9]+}/abort", produces = { "application/json" })
+	public GameExtendedDTO abortGame(@AuthenticationPrincipal MatchmakingUserDetails userDetails,
+			@PathVariable("gameId") Long gameId) {
+		return gameService.abortGame(userDetails.getPlayer(), gameId);
 	}
 
 	@Operation(summary = "Leave game", description = "Leave game")

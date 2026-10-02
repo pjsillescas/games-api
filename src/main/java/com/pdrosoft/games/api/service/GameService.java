@@ -21,4 +21,8 @@ public interface GameService {
 	GameExtendedDTO getGame(Player guest, Long gameId);
 
 	GameExtendedDTO startGame(Player player, Long gameId);
+
+	GameExtendedDTO finishGame(Player player, Long gameId);
+
+	GameExtendedDTO abortGame(Player player, Long gameId);
 }

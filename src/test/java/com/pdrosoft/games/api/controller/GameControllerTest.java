@@ -339,6 +339,88 @@ public class GameControllerTest {
 	}
 
 	@Test
+	void testCreateAndFinishSuccess() throws Exception {
+		var tokenHost = getToken("testuser1", "password1");
+
+		var gameInputDto = GameInputDTO.builder().joinCode("test-code").gameTemplateId(2L).build();
+		var json = getObjectMapper().writeValueAsString(gameInputDto);
+		var result = mockMvc.perform(put("/api/game") //
+				.header("Authorization", "Bearer %s".formatted(tokenHost)) //
+				.contentType(MediaType.APPLICATION_JSON)//
+				.content(json))//
+				.andExpect(status().isOk()).andReturn();
+
+		var game = getObjectMapper().readValue(result.getResponse().getContentAsString(), GameDTO.class);
+		var newGameId = game.getId();
+		assertThat(game.getCreationDate()).isBetween(Instant.now().minus(Duration.ofSeconds(2)),
+				Instant.now().plus(Duration.ofSeconds(2)));
+		assertThat(game.getName()).isEqualTo("testuser1's game");
+		assertThat(game.getGameTemplate().getId()).isEqualTo(2);
+		assertThat(game.getGameTemplate().getMinPlayers()).isEqualTo(1);
+		assertThat(game.getPlayers()).hasSize(1).allSatisfy(user -> {
+			assertThat(user.getUsername()).isEqualTo("testuser1");
+		});
+
+		var resultStart = mockMvc.perform(put("/api/game/{gameId}/start", Integer.toString(newGameId)) //
+				.header("Authorization", "Bearer %s".formatted(tokenHost)))//
+				.andExpect(status().isOk()).andReturn();
+
+		var gameDto = getObjectMapper().readValue(resultStart.getResponse().getContentAsString(),
+				GameExtendedDTO.class);
+		assertThat(gameDto.getPhase()).isEqualTo(GamePhase.PLAYING);
+
+		var resultFinish = mockMvc.perform(put("/api/game/{gameId}/finish", Integer.toString(newGameId)) //
+				.header("Authorization", "Bearer %s".formatted(tokenHost)))//
+				.andExpect(status().isOk()).andReturn();
+
+		var finishedGameDto = getObjectMapper().readValue(resultFinish.getResponse().getContentAsString(),
+				GameExtendedDTO.class);
+		assertThat(finishedGameDto.getPhase()).isEqualTo(GamePhase.FINISHED);
+
+	}
+
+	@Test
+	void testCreateAndAbortSuccess() throws Exception {
+		var tokenHost = getToken("testuser1", "password1");
+
+		var gameInputDto = GameInputDTO.builder().joinCode("test-code").gameTemplateId(2L).build();
+		var json = getObjectMapper().writeValueAsString(gameInputDto);
+		var result = mockMvc.perform(put("/api/game") //
+				.header("Authorization", "Bearer %s".formatted(tokenHost)) //
+				.contentType(MediaType.APPLICATION_JSON)//
+				.content(json))//
+				.andExpect(status().isOk()).andReturn();
+
+		var game = getObjectMapper().readValue(result.getResponse().getContentAsString(), GameDTO.class);
+		var newGameId = game.getId();
+		assertThat(game.getCreationDate()).isBetween(Instant.now().minus(Duration.ofSeconds(2)),
+				Instant.now().plus(Duration.ofSeconds(2)));
+		assertThat(game.getName()).isEqualTo("testuser1's game");
+		assertThat(game.getGameTemplate().getId()).isEqualTo(2);
+		assertThat(game.getGameTemplate().getMinPlayers()).isEqualTo(1);
+		assertThat(game.getPlayers()).hasSize(1).allSatisfy(user -> {
+			assertThat(user.getUsername()).isEqualTo("testuser1");
+		});
+
+		var resultStart = mockMvc.perform(put("/api/game/{gameId}/start", Integer.toString(newGameId)) //
+				.header("Authorization", "Bearer %s".formatted(tokenHost)))//
+				.andExpect(status().isOk()).andReturn();
+
+		var gameDto = getObjectMapper().readValue(resultStart.getResponse().getContentAsString(),
+				GameExtendedDTO.class);
+		assertThat(gameDto.getPhase()).isEqualTo(GamePhase.PLAYING);
+
+		var resultAbort = mockMvc.perform(put("/api/game/{gameId}/abort", Integer.toString(newGameId)) //
+				.header("Authorization", "Bearer %s".formatted(tokenHost)))//
+				.andExpect(status().isOk()).andReturn();
+
+		var abortGameDto = getObjectMapper().readValue(resultAbort.getResponse().getContentAsString(),
+				GameExtendedDTO.class);
+		assertThat(abortGameDto.getPhase()).isEqualTo(GamePhase.ABORTED);
+
+	}
+
+	@Test
 	void testCreateJoinLeaveHostFirstGameSuccess() throws Exception {
 		final var testCode = "test-code";
 
